@@ -5,8 +5,9 @@ from pydantic.v1  import BaseModel, Field, Extra
 from typing import List, Optional
 import re
 from torch.utils.data import Dataset
-
 from sklearn.model_selection import train_test_split
+
+import eval_utils
 
 
 
@@ -46,7 +47,7 @@ def get_category_seeds(args):
             "location" : ["place", "street", "spot", "neighbourhood", "location"], 
             "restaurant" : ["restaurant", "seating", "room", "garden", "interior" ], 
             "service" : ["service", "staff", "waitress", "bartender", "hostess"], 
-            "price" : ["price", "money", "value", "cost", "offer"], 
+            "prices" : ["price", "money", "value", "cost", "offer"], 
             "miscellaneous" : [ "time", "portion", "delivery", "noise", "entertainment"]}
     elif args.dataset == 'odido':
         category_dict = {"facturen" : ["factuur", "kosten", "bedrag", "betaling", "rekening"], 
@@ -110,7 +111,15 @@ def extract_labeled_data(args, data_path):
 
     return dataset
 
+def load_labeled_data(args, set):
+    data_path = f"outputs/{args.dataset}/{set}/{args.labeling_approach}_{args.labeling}"
+    with open(data_path, 'r') as file:
+        df = file.read()
+    dataset = eval(df)
 
+    scores, all_labels, all_preds = eval_utils.compute_scores(dataset, args, set, individual_comparissons = True)
+
+    return scores
 
 def load_train(args):
     if args.labeled_train_data_available:
@@ -222,7 +231,7 @@ def get_train_dataset_paraphrase(args, labels, tokenizer):
                 a, c, s, o = quad
                 
                 try:    
-                    s_change = self.sentword2opinion[s]  # 'POS' -> 'good'
+                    s_change = sentword2opinion[s]  # 'POS' -> 'good'
                 except: 
                     s_change = s 
                 

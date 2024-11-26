@@ -5,18 +5,19 @@ import shutil
 
 from Labeler import Labeler
 from Generative_model import generative_model
+import data_utils
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def init_args():
     parser = argparse.ArgumentParser()
     # Select the dataset
-    parser.add_argument("--dataset", default='rest16', type=str, required=False,
+    parser.add_argument("--dataset", default='odido', type=str, required=False,
                             help="The name of the dataset, selected from: [rest15, rest16, odido]")
 
     # Select the approaches
-    parser.add_argument("--labeling_approach", default='labeled', 
+    parser.add_argument("--labeling_approach", default='gpt', 
                         help="The labeling approach, selected from: [bert, gpt, labeled]")
-    parser.add_argument("--generative_approach", default='gpt', 
+    parser.add_argument("--generative_approach", default='paraphrase', 
                         help="The labeling approach, selected from: [paraphrase, gpt, uniform]")
     
     args = parser.parse_args()
@@ -31,10 +32,10 @@ def init_args():
    
 
     if args.labeling_approach == 'bert':
-        parser.add_argument("--labeling", default='multiple_attention', 
+        parser.add_argument("--labeling", default='one', 
                         help="The labeling approach for the bert labeling, selected from: [one, multiple_pos, multiple_attention]")
     elif args.labeling_approach == 'gpt':
-        parser.add_argument("--labeling", default='no_evaluator', 
+        parser.add_argument("--labeling", default='evaluator', 
                         help="The labeling approach for the GPT labeling, selected from: [evaluator, no_evaluator]")
     else:
         parser.add_argument("--labeling", default='', 
@@ -83,7 +84,7 @@ def init_args():
                         help="the size of the vocabularies")
     parser.add_argument('--threshold', type=int, default=0.0,
                         help="the size of the vocabularies")
-    parser.add_argument('--threshold_attn', type=int, default=0.1,
+    parser.add_argument('--threshold_attn', type=int, default=0.2,
                         help="the size of the vocabularies")
     parser.add_argument('--gpt_threshold', type=int, default=7,
                         help="the size of the vocabularies")
@@ -144,14 +145,23 @@ def init_args():
     return args
 
 args = init_args()
+execute = True
 
-print("\n", "="*30, f"NEW EXP: WG_ASQP on {args.dataset}", "="*30, "\n")
-print("\n", "="*11, f"With labeling approach: {args.labeling_approach} and generative approach: {args.generative_approach}", "="*11, "\n")
+if execute:
+    print("\n", "="*30, f"NEW EXP: WG_ASQP on {args.dataset}", "="*30, "\n")
+    print("\n", "="*11, f"With labeling approach: {args.labeling_approach} and generative approach: {args.generative_approach}", "="*11, "\n")
 
-labeler = Labeler(args)
-train, val = labeler()
+    labeler = Labeler(args)
+    train, val = labeler()
 
-model = generative_model(args, train, val)
-scores, targets = model.evaluate()
+    model = generative_model(args, train, val)
+    scores, targets = model.evaluate()
 
-shutil.rmtree(f"outputs/{args.dataset}/lightning_logs")
+    shutil.rmtree(f"outputs/{args.dataset}/lightning_logs")
+else:
+    data_utils.load_labeled_data(args, 'test')
+
+
+
+
+    

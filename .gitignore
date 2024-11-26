@@ -1,0 +1,7 @@
+*.pyc
+*.env
+*.csv
+*.json
+*.safetensors
+outputs/*
+result_log/*

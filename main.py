@@ -84,7 +84,7 @@ def init_args():
                         help="the size of the vocabularies")
     parser.add_argument('--threshold', type=int, default=0.0,
                         help="the size of the vocabularies")
-    parser.add_argument('--threshold_attn', type=int, default=0.2,
+    parser.add_argument('--threshold_attn', type=int, default=0.1,
                         help="the size of the vocabularies")
     parser.add_argument('--gpt_threshold', type=int, default=7,
                         help="the size of the vocabularies")

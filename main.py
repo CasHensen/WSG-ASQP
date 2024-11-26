@@ -11,7 +11,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 def init_args():
     parser = argparse.ArgumentParser()
     # Select the dataset
-    parser.add_argument("--dataset", default='odido', type=str, required=False,
+    parser.add_argument("--dataset", default='rest15', type=str, required=False,
                             help="The name of the dataset, selected from: [rest15, rest16, odido]")
 
     # Select the approaches

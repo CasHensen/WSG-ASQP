@@ -6,7 +6,32 @@ import torch
 import data_utils
 
 class assign_labels():
+"""
+This class assigns the labels to the unlabeled dataset using the obtained overlap scores. 
+
+The assignment of labels is done using one of three techniques for the BERT approach. The technique is specified in the arguments. 
+
+attributes: 
+- args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+- device: the device shows whether it is run on CPU or on GPU
+- threshold: the threshold to assign labels 
+- threshold_attn: the threshold idicating wether two words are linked via attention 
+- bert: the BERT model used to find replacements for the masked words 
+- tokenizer: the tokenizer used to tokenize the input for BERT
+- nlp: the natural language processor for POS tagging and dependency parsing
+"""
+    
     def __init__(self, args, bert, tokenizer, nlp):
+        """
+        The initialization function to assign variables to the class attributes
+
+        input: 
+        - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+        - bert: the BERT model used to find replacements for the masked words 
+        - tokenizer: the tokenizer used to tokenize the input for BERT
+        - nlp: the natural language processor for POS tagging and dependency parsing
+        """
+        
         self.args = args
         self.device = args.device
 
@@ -17,10 +42,17 @@ class assign_labels():
         self.tokenizer = tokenizer
         self.nlp = nlp
 
-        senttag2opinion, self.sentword2opinion, opinion2word = data_utils.get_sentiment(args)
-
 
     def __call__(self, scores):
+        """
+        The call function of the class initiates the assignment of labels using the overlap scores. 
+
+        input:
+        - scores: the list of dictionaries, where each dictionary contains the sentence, the potential aspect category, the potential opinion terms, the individual overlap scores, and the sentence overlap scores
+
+        output:
+        - targets: the list of dictionaries, where each dictionary contains the sentence and the assigned labels 
+        """
         if self.args.labeling == 'one' :
             labels = self.assign_one(scores)
         elif self.args.labeling == 'multiple_pos':
@@ -36,6 +68,15 @@ class assign_labels():
 
 
     def create_target(self, labels):
+        """
+        transform the labels extracted from the sentences into the correct output format
+
+        input: 
+        - labels: a list of dictionaries, where each dictionary contains the aspect terms, opinion terms, aspect categories, and sentiment polarities extracted from the sentence
+
+        output: 
+        - targets: a list of dictionaries, where each dictionary contains the sentence and the quadruplets
+        """
         targets = []
         for label in labels: 
             quads = []
@@ -55,6 +96,15 @@ class assign_labels():
         return targets
 
     def assign_one(self, scores):
+        """
+        The function for the one quadruplet technique, where one quadruplet per sentence is assigned using the sentence overlap scores. 
+
+        input: 
+        - scores: a list of dictionaries, where each dictionary contains the sentence, potential aspects, the potential opinions, the individual scores and the sentence scores
+
+        output: 
+        - labels 
+        """
         labels = []
         for score in scores:
             label =  {'sentence': score['sentence'], 'aspect': [], 'category': [], 'opinion': [], 'sentiment': [], 'label': score['label']}

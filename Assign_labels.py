@@ -103,7 +103,7 @@ attributes:
         - scores: a list of dictionaries, where each dictionary contains the sentence, potential aspects, the potential opinions, the individual scores and the sentence scores
 
         output: 
-        - labels 
+        - labels: a list of dictionaries, where each dictionary contains the aspect terms, opinion terms, aspect categories, and sentiment polarities extracted from the sentence
         """
         labels = []
         for score in scores:
@@ -142,6 +142,15 @@ attributes:
                         
 
     def assign_pos(self, scores):
+        """
+        The function for the dependency based technique, where the quadruplets are identified using dependency parsing and overlap scores
+
+        input: 
+        - scores: a list of dictionaries, where each dictionary contains the sentence, potential aspects, the potential opinions, the individual scores and the sentence scores
+
+        output: 
+        - labels: a list of dictionaries, where each dictionary contains the aspect terms, opinion terms, aspect categories, and sentiment polarities extracted from the sentence
+        """
         labels = []
         for score in scores:
             label =  {'sentence': score['sentence'], 'aspect': [], 'category': [], 'opinion': [], 'sentiment': [], 'label': score['label']}
@@ -160,6 +169,16 @@ attributes:
 
 
     def assign_attention(self, scores):
+        """
+        The function for the attention based technique, the quadruplets are identified using attention scores and overlap scores 
+
+        input: 
+        - scores: a list of dictionaries, where each dictionary contains the sentence, potential aspects, the potential opinions, the individual scores and the sentence scores
+
+        output: 
+        - labels: a list of dictionaries, where each dictionary contains the aspect terms, opinion terms, aspect categories, and sentiment polarities extracted from the sentence
+        """
+        
         labels = []
         for score in scores:
             label =  {'sentence': score['sentence'], 'aspect': [], 'category': [], 'opinion': [], 'sentiment': [], 'label': score['label']}
@@ -223,6 +242,16 @@ attributes:
 
 
     def get_attentions(self, score):
+        """
+        Get the attention scores between the words in a sentence
+
+        input: 
+        - scores: a list of dictionaries, where each dictionary contains the sentence, potential aspects, the potential opinions, the individual scores and the sentence scores
+
+        output: 
+        - word_attn: the attention scores between the words in the sentence
+        - np.array(tokens[1:-1]): the identified words in the sentence using the tokenizer without the special tokens
+        """
         sentence = score['sentence']
         sentence_t = self.tokenizer(sentence, return_tensors='pt', truncation=True)['input_ids'].to(self.device)
         attentions = self.bert(sentence_t, output_attentions=True,)[1]

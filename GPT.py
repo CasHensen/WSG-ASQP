@@ -15,15 +15,39 @@ from langchain.evaluation import load_evaluator
 import data_utils
 
 class gpt:
+    """
+    This class carries out the GPT approach for both the labeling and the inference 
+
+    The GPT approach uses one of two techniques either just the few shot approach or the evaluator technique, which adds an evaluator to the few shot gpt chain. 
+
+    attributes: 
+    - category_seeds: a dictionary containing the aspect categories and its seeds words, but only the aspect categories are used 
+    - sentiment_seeds: a dictionary containing the sentiment polarities and its seeds words, but only the sentiment polarities are used 
+    - gpt: the file containing the environment variables for the GPT model
+    - args: the arguments containing the technique to use, but also the thresholds and other parameters.  
+    """
     def __init__(self, args, category_seeds, sentiment_seeds):
+        """
+        The intialization function to assign variables to the class attributes.
+
+        input: 
+        - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+        - category_seeds: the seed words for the aspect categories
+        - sentiment_seeds: the seed words for the sentiment polarities
+        """ 
         self.category_seeds = category_seeds
         self.sentiment_seeds = sentiment_seeds
-        senttag2opinion, self.sentword2opinion, opinion2word = data_utils.get_sentiment(args)
         self.gpt = args.gpt
         self.args = args
 
 
     def __call__(self, dataset):  
+        """
+        The call function of the class executes the GPT approach
+
+        input: 
+        - dataset: the dataset on which the inference or labeling needs to be done
+        """
         category_chain, evaluator = self.create_chain()
         labeled = []
         for sentence in tqdm(dataset):
@@ -34,6 +58,13 @@ class gpt:
 
 
     def create_chain(self):
+        """
+        Creates the gpt chain through which the datasets will go 
+
+        output: 
+        - category_chain: the flow through the GPT model containing the prompt, the actual model, and the parser to make sure the output is in the correct format. 
+        - evaluator: The evaluator module added on top of the category chain to obtain the evaluator technique
+        """
         load_dotenv(self.gpt, override=True)
         parser = JsonOutputParser(pydantic_object=data_utils.Quadruplets)
         model = AzureChatOpenAI(
@@ -64,6 +95,17 @@ class gpt:
         return category_chain, evaluator
 
     def get_quads(self, sentence, category_chain, evaluator):
+        """
+        The function returns the quadruples from the sentence as extracted by the GPT approach using either the few shot technique or the evaluator technique 
+
+        input: 
+        - sentence: the sentence from which the quadruplets needs to be extracted 
+        - category_chain: the gpt chain to extract the quadruplets from the sentence using the few shot approach
+        - evaluator: the evaluator module which is added on top of the few shot technique to get the evaluator technique 
+
+        output: 
+        - quads: the quadruplets extracted from the sentence, in the form of a dictionary containing the inputs: aspect, category, opinion, and sentiment 
+        """
         quads = []
         try:
             with get_openai_callback() as cb:
@@ -104,36 +146,17 @@ class gpt:
         
         return quads
 
-    def create_target(self, quads):
-        all_quad_sentences = []
-        for quad in quads:
-            a, c, s, o = quad
-
-            try:    
-                s_change = self.sentword2opinion[s]  # 'POS' -> 'good'
-            except: 
-                s_change = s 
-
-            if a == 'NULL':  # for implicit aspect term
-                if self.args.dataset == 'rest15' or self.args.dataset == "rest16":
-                    a = 'it'
-                elif self.args.dataset == "odido":
-                    a = 'het'
-            if a:
-                if self.args.dataset == 'rest15' or self.args.dataset == "rest16":  
-                    one_quad_sentence = f"{c} is {s_change} because {a} is {o}"
-                elif self.args.dataset == "odido":
-                    one_quad_sentence = f"{c} is {s_change} omdat {a} is {o}"
-            else: 
-                one_quad_sentence = ""
-
-            all_quad_sentences.append(one_quad_sentence)
-            
-        target = ' [SSEP] '.join(all_quad_sentences)
-        return target
-
 
     def load_prompt(self, parser):
+        """
+        Load the prompt for the correct dataset 
+
+        input: 
+        parser: the parser to make sure the output is in the correct format
+
+        ouput: 
+        -prompt: the prompt format for the dataset evaluated 
+        """
         if self.args.dataset == 'odido':
             prompt_cate = """
                 You will get a summary divided per sentence. 

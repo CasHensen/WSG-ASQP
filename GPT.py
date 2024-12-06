@@ -47,6 +47,9 @@ class gpt:
 
         input: 
         - dataset: the dataset on which the inference or labeling needs to be done
+
+        output: 
+        - labeled: a list of dictionaries containing the sentence and the obtained quadruplets. 
         """
         category_chain, evaluator = self.create_chain()
         labeled = []

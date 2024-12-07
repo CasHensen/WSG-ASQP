@@ -222,7 +222,7 @@ class LoggingCallback(pl.Callback):
 class T5FineTuner(pl.LightningModule):
     """
     Fine tune a pre-trained T5 model
-    Code from the Paraphrase paper, adjusted a bit for the implementation of this paper 
+    Code from the Paraphrase paper, adjusted a bit for the implementation of my thesis 
     """
     def __init__(self, args, tfm_model, tokenizer, train, val):
         super(T5FineTuner, self).__init__()

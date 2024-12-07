@@ -10,13 +10,37 @@ import save_utils
 import eval_utils
 
 class Labeler():
+    """
+    The class calls upon the right labeling approach and evaluates the automtically labeled data
+
+    attributes: 
+    - args: the arguments containing the technique to use, but also the thresholds and other parameters
+    - category_seeds: a dictionary containing the aspect categories and its seeds words
+    - sentiment_seeds: a dictionary containing the sentiment polarities and its seeds words 
+    - labeling_approach: the labeling approach used, either the PLM BERT or GPT is used 
+    """
     def __init__(self, args):
+        """
+        The intialization function to assign variables to the class attributes.
+
+        input: 
+        - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+        """ 
         self.args = args
         self.category_seeds = data_utils.get_category_seeds(args)
         self.sentiment_seeds = data_utils.get_sentiment_seeds(args)
         self.labeling_approach = args.labeling_approach
     
     def __call__(self):
+        """
+        The call function of the class calls upon the correct labeling approach
+
+        The training and validation data automatically labeled using the correct labeling approach. If possible the automatically labeled datasets are evaluated using the F1 score, precision, and recall
+
+        output: 
+        - labels_train: the automatically labeled train data. The format is a list of dictionaries, with each dictionary containing an entry for the sentence, the automatically obtained label, and the gold label if present. 
+        - labels_val: the automatically labeled validation data. The format is a list of dictionaries, with each dictionary containing an entry for the sentence, the automatically obtained label, and the gold label if present. 
+        """
         start = time.time()
         if self.args.labeled_train_data_available and self.labeling_approach == 'gpt':
             labels_train, labels_val = data_utils.load_train(self.args)
@@ -44,6 +68,13 @@ class Labeler():
         return labels_train, labels_val
 
     def evaluate(self, pred, data_path):
+        """
+        The function to evaluate automatically labeled dataset
+
+        inputs: 
+        - pred: the automatically labeled dataset
+        - data_path: the name of the dataset, either train, validation, or test
+        """
         scores, gold, perd = eval_utils.compute_scores(pred, self.args, data_path, self.label_time)
 
     

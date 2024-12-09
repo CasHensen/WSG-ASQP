@@ -12,6 +12,15 @@ import eval_utils
 
 
 def get_sentiment_seeds(args):
+    """
+    Returns the sentiment polarity seed words for the dataset 
+    
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+
+    output: 
+    - sentiment_dict: the sentiment polarity seed words for the dataset
+    """
     sentiment_dict = {}
     if args.dataset == 'rest15' or args.dataset == 'rest16':   
         sentiment_dict = {"negative" : ["never", "small", "bad", "overpriced", "arrogant"],
@@ -25,6 +34,17 @@ def get_sentiment_seeds(args):
     
 
 def get_sentiment(args):
+    """
+    Get the dictionary to reformulate the sentiment polarities to for instance natural language
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+
+    output: 
+    - senttag2opinion: reformulate a "POS" or "NEG" tag to natural langauge 
+    - sentword2opinion: reformulate a "positive" or "negative" tag to natural language
+    - opinion2word: reformulate the natural language format back to the "positive" or "negative" tag
+    """
     if args.dataset == 'rest15' or args.dataset == 'rest16':
         senttag2opinion = {'POS': 'great', 'NEG': 'bad'}
         sentword2opinion = {'positive': 'great', 'negative': 'bad'}
@@ -39,6 +59,15 @@ def get_sentiment(args):
     
 
 def get_category_seeds(args):
+    """
+    Returns the aspect category seed words for the dataset 
+    
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+
+    output: 
+    - category_dict: the aspect category seed words for the dataset
+    """
     category_dict = {}
     if args.dataset == 'rest15' or args.dataset == 'rest16':
         category_dict = {"ambience" : ["experience", "atmosphere", "decor","ambience", "setting"], 
@@ -55,6 +84,15 @@ def get_category_seeds(args):
 
 
 def load_fine_tune(args):
+    """
+    Load the dataset to post train the BERT model
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+
+    output: 
+    - dataset: the dataset used to post train the BERT model
+    """
     if args.dataset == 'odido':
         directory =  f'data/{args.dataset}/2024-samples-all-from-may.csv'
         fine_tune = pd.read_csv(directory)
@@ -76,6 +114,16 @@ def load_fine_tune(args):
 
 
 def load_test_data(args, data_path):
+    """
+    Load the test dataset 
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - data_path: name of the test data
+
+    output: 
+    - the test dataset 
+    """
     data_path = f'data/{args.dataset}/{data_path}.txt'
     with open(data_path, 'r') as file:
             test = file.read()
@@ -84,6 +132,16 @@ def load_test_data(args, data_path):
 
 
 def extract_labeled_data(args, data_path):
+    """
+    Load the dataset together with its labels 
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - data_path: name of the test data
+
+    output: 
+    - the dataset together with the labels
+    """
     data_path = f'data/{args.dataset}/{data_path}.txt'
     with open(data_path, 'r') as file:
             df = file.read()
@@ -103,6 +161,16 @@ def extract_labeled_data(args, data_path):
     return dataset
 
 def load_labeled_data(args, set):
+    """
+    Load the automatically labeled dataset and compute the scores for the automatically labeled data
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - set: the automatically labeled dataset which needs to loaded: train, val, test
+
+    output: 
+    - scores: the F1 score, precision, and recall for the 
+    """
     data_path = f"outputs/{args.dataset}/{set}/{args.labeling_approach}_{args.labeling}"
     with open(data_path, 'r') as file:
         df = file.read()
@@ -113,6 +181,16 @@ def load_labeled_data(args, set):
     return scores
 
 def load_train(args):
+    """
+    Load the sentences for the train and validation data
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+
+    output: 
+    - train: the train data
+    - val: the validation data
+    """
     if args.labeled_train_data_available:
         data_path = f"outputs/{args.dataset}/train/{args.labeling_approach}_{args.labeling}"
         with open(data_path, 'r') as file:
@@ -151,6 +229,16 @@ def load_train(args):
 
 
 def extract_matrices(content):
+    """
+    extract the sentences and their corresponding labels from the content
+
+    input: 
+    - content: the lines read from the text file
+
+    output: 
+    - sentences: the sentences in the dataset
+    - labels: the labels in the dataste
+    """
     pattern = r"(.*?)####(.*?)\n"
     matches = re.findall(pattern, content, re.DOTALL)
     sentences = []  
@@ -169,6 +257,15 @@ def extract_matrices(content):
     return pd.Series(sentences), labels
 
 def clean_sentences(sentences):
+    """
+    clean sentences such that they are in a uniform format
+
+    input: 
+    - sentences: the sentences which need to be cleaned
+
+    output: 
+    - sentences: the cleaned sentences
+    """
     sentences = sentences.apply(lambda x : x.strip())
     sentences = sentences.str.lower()
     sentences.replace(to_replace=r'[^\w\s]', value="", regex=True, inplace=True)
@@ -178,6 +275,15 @@ def clean_sentences(sentences):
     return sentences
 
 def extract_sentences(df):
+    """
+    Load the dataset in the format of a list containing dictionaries with as entries the sentences and its corresponding label if possible
+
+    input: 
+    - df: the content from which the dataset needs to be extracted in the correct format
+
+    output: 
+    - dataset: the dataset in the correct format
+    """
     if isinstance(df, pd.DataFrame):
         sentences = df["gpt_summary"].str.split(".").explode()
     else:
@@ -199,9 +305,31 @@ def extract_sentences(df):
     return dataset
 
 def get_inference_dataset_paraphrase(args, sentences, tokenizer):
+    """
+    create the inference dataset for the Paraphrase method
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - sentences: the sentences for the inference
+    - tokenizer: the tokenizer used to tokenize sentences for the paraphrase model
+
+    output: 
+    - ABSADataset: The dataset class used for the Paraphrase model
+    """
     return ABSADataset(tokenizer, sentences, 'inference', max_len = args.max_seq_length)
 
 def get_evaluation_dataset_paraphrase(args, dataset, tokenizer):
+    """
+    create the evaluation dataset for the Paraphrase method
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - dataset: The dataset containing sentences and the gold labels
+    - tokenizer: the tokenizer used to tokenize sentences for the paraphrase model
+
+    output: 
+    - ABSADataset: The dataset class used for the Paraphrase model
+    """
     sentences = []
     labels = []
     for i in range(len(dataset)):
@@ -211,6 +339,17 @@ def get_evaluation_dataset_paraphrase(args, dataset, tokenizer):
     return ABSADataset(tokenizer, sentences, 'evaluate', labels, max_len = args.max_seq_length)
 
 def get_train_dataset_paraphrase(args, labels, tokenizer):
+    """
+    create the train dataset for the Paraphrase method
+
+    input: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - labels: the automatically labeled datasets with labels and sentences
+    - tokenizer: the tokenizer used to tokenize sentences for the paraphrase model
+
+    output: 
+    - ABSADataset: The dataset class used for the Paraphrase model
+    """
     inputs = []
     targets = []
     senttag2opinion, sentword2opinion, opinion2word = get_sentiment(args)
@@ -245,6 +384,11 @@ def get_train_dataset_paraphrase(args, labels, tokenizer):
     return ABSADataset(tokenizer, inputs, 'train' , targets, args.max_seq_length)
         
 class ABSADataset(Dataset):
+    """
+    The class used in the Paraphrase method to handle the data from the code for the Paraphrase paper 
+
+    The class is adjusted a bit to be implemented in the context of this thesis, by specifying the task for the paraphrase either train, evaluate, or inference. The different tasks cause different targets to be stored
+    """
     def __init__(self, tokenizer, inputs, task, targets = None, max_len=128):
         self.task = task
         self.max_len = max_len

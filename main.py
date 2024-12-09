@@ -9,6 +9,14 @@ import data_utils
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def init_args():
+    """
+    Function to initialize the parameters used in the WG-ASQP method. 
+
+    This function also creates the output files where the scores are saved and the automatically labeled datasets. 
+
+    output: 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters
+    """
     parser = argparse.ArgumentParser()
     # Select the dataset
     parser.add_argument("--dataset", default='rest15', type=str, required=False,
@@ -145,6 +153,8 @@ def init_args():
     return args
 
 args = init_args()
+
+# the execute variable indicates if the whole model needs to be run or if there is already an dataset with the saved prediction, such that you can compute the scores directly
 execute = True
 
 if execute:

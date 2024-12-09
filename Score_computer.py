@@ -6,7 +6,36 @@ import torch
 import re
 
 class score_computer():
+    """
+    This class computes the overlap scores for the classification of sentences
+
+    attributes: 
+    - k_2: The number of replacements found by BERT to compute the overlap score with the vocabularies
+    - device: indicates whether the process is executed on CPU or GPU
+    - category_vocab: The aspect category vocabularies
+    - sentiment_vocab: The sentiment polarity vocabularies
+    - bert: the BERT model used to find replacements for the masked words 
+    - tokenizer: the tokenizer used to tokenize the input for BERT
+    - nlp: the natural language processor for POS tagging and dependency parsing
+    - num_threads: the number of threads used to thread the function 
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+    - mask: the mask token
+    - mask_token: the tokenized mask token
+    - category_scores: all overlaps scores for the aspect categories are saved in this variable to normalize the scores 
+    - sentiment_scores: all overlaps scores for the sentiment polarities are saved in this variable to normalize the scores 
+    """
     def __init__(self, args, bert, tokenizer, nlp, category_vocab, sentiment_vocab):
+        """
+        The intialization function to assign variables to the class attributes.
+        
+        input: 
+        - args: the arguments containing which technique to use, but also the thresholds and other parameters. 
+        - bert: the BERT model used to find replacements for the masked words 
+        - tokenizer: the tokenizer used to tokenize the input for BERT
+        - nlp: the natural language processor for POS tagging and dependency parsing
+        - category_vocab: The aspect category vocabularies
+        - sentiment_vocab: The sentiment polarity vocabularies
+        """
         self.k_2 = args.k_2
         self.device = args.device
         
@@ -28,11 +57,29 @@ class score_computer():
         self.sentiment_scores = pd.DataFrame(columns = list(self.sentiment_vocab.keys()))
 
     def __call__(self, train):
+        """
+        The call function of the class initiates the computation of overlap scores
+
+        input: 
+        - train: the unlabeled training dataset
+
+        output: 
+        - labels: a list of dictionaries containing the sentences together with the overlap scores and their corresponding potential aspect terms or potential opinion terms
+        """
         labels = self.threading_for_overlapscores(train)
         return labels
 
 
     def threading_for_overlapscores(self, sentences):
+        """
+        The computation of overlap scores is threaded over multiple threads for faster computation 
+
+        input: 
+        - sentences: the sentences for which overlap scores are computed
+
+        output: 
+        - labels: a list of dictionaries containing the sentences together with the overlap scores and their corresponding potential aspect terms or potential opinion terms
+        """
         potentials = []
         split_sentences = np.array_split(sentences, self.num_threads)
         threads = []
@@ -48,6 +95,15 @@ class score_computer():
 
 
     def extract_scores(self, sentences, potentials):
+        """
+        Function to guide the score computation to the right computer
+
+        The one quadruplet technique and the attention based technique have one function to compute scores and the dependency based technique has its own function
+
+        input: 
+        - sentences: the sentences for which the scores need to be extracted
+        - potentials: the computes scores for the potential aspect terms and opinion terms are stores in this variable 
+        """
         if self.args.labeling == 'one' or self.args.labeling == 'multiple_attention':
             self.extract_per_sentence(sentences, potentials)
         elif self.args.labeling == 'multiple_pos':
@@ -57,6 +113,13 @@ class score_computer():
 
 
     def extract_per_sentence(self, sentences, potentials):
+        """
+        The function computes the overlap scores for the one quadruplet and attention based technique
+
+        input: 
+        - sentences: the sentences for which the scores need to be extracted
+        - potentials: the computes scores for the potential aspect terms and opinion terms are stores in this variable
+        """
         for sentence in sentences:
             label = {'sentence': sentence['sentence'], 'aspect': [], 'category_scores': [], 'category': [], 'opinion': [], 'sentiment_scores': [], 'sentiment': [], 'sentence_category_scores': [], 'sentence_sentiment_scores': [], 'label': sentence['label']}
             sentence = sentence['sentence']
@@ -99,6 +162,13 @@ class score_computer():
             potentials.append(label)
 
     def extract_pos_tagging(self, sentences, potentials):
+                """
+        The function computes the overlap scores for dependency based technique
+
+        input: 
+        - sentences: the sentences for which the scores need to be extracted
+        - potentials: the computes scores for the potential aspect terms and opinion terms are stores in this variable
+        """
         for sentence in sentences:
             label = {'sentence': sentence['sentence'], 'aspect': [], 'category_scores': [], 'category': [], 'opinion': [], 'sentiment_scores': [], 'sentiment': [], 'sentence_category_scores': [], 'sentence_sentiment_scores': [], 'label': sentence['label']}
             sentence_cat_scores = pd.DataFrame(columns = list(self.category_vocab.keys()))
@@ -145,6 +215,15 @@ class score_computer():
 
                 
     def normalize_scores(self, labels):
+        """
+        function to normalize the overlap scores, since the distribution of the vocabularies over the sentences is not even 
+
+        input: 
+        - the labels with the non-normalized overlap scores per sentence
+
+        output: 
+        - the labels with the normalized overlap scores per sentence 
+        """
         category_mean = self.category_scores.mean()
         category_std = self.category_scores.std()
         sentiment_mean = self.sentiment_scores.mean()
@@ -169,7 +248,18 @@ class score_computer():
 
 
 
-    def compute_overlap_scores(self, words_in_sentence, token, vocabulary):   
+    def compute_overlap_scores(self, words_in_sentence, token, vocabulary):  
+        """
+        The function to help compute the overlap scores 
+
+        input: 
+        - words_in_sentence: an array containing the words in the sentence
+        - token: the token for which the overlap scores need to be computed
+        - vocabulary: the vocabularies used with which the overlap score is computed
+
+        output: 
+        - values: the computed overlap scores with the given vocabularies
+        """
         try:
             words_in_sentence[token.i] = self.mask
         except Exception as e:
@@ -195,6 +285,16 @@ class score_computer():
 
 
     def get_k_replacements(self, tokenized_sentence, k):
+        """
+        Obtain the top-k replacements for the masked word in the tokenized sentence
+
+        input: 
+        - tokenized_sentence: the tokenized sentence 
+        - k: the number of replacements found for the masked word in the sentence
+
+        output: 
+        - replacements: the top-k replacements for the masked word in the tokenized sentence
+        """
         mask_location = np.reshape(np.isin(tokenized_sentence.input_ids.cpu().numpy(), self.mask_token), (-1))
         output = self.bert(**tokenized_sentence)[0]
         word_scores, word_ids = torch.topk(output, k, -1)
@@ -207,6 +307,15 @@ class score_computer():
         return replacements
 
     def filter_replacements(self, decoded_top_k):
+        """
+        Function to filter the replacements on stopwords, punctuation, and partial words
+
+        input: 
+        - decoded_top_k: the decoded top-k replacements needing to be filtered
+
+        output: 
+        - pd.Series(filtered_words): the filtered replacements 
+        """
         removed_padding = []
         for word in decoded_top_k:
             if '##' in word:

@@ -5,6 +5,20 @@ import re
 import save_utils
 
 def compute_scores(pred_seqs, args, data_type, label_time):
+    """
+    Compute the F1 score, precision, and recall for the predicted sequences for both the whole quadruplets and the individual elements. The ouput is stored in the output file
+
+    input: 
+    - pred_seq: a list of dictionaries containing the sentence, predicted quadrupelts, adn the gold label
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters
+    - data_type: the type of dataset either trian, validation, or test
+    - label_time: the time to obtain the quadruplets for the sentence
+
+    output: 
+    - scores: the F1 score, precision, and recall for the whole quadruplets
+    - all_labels: list of all labels in the dataset
+    - all_preds: list of all predictions in the dataset
+    """
     num_samples = len(pred_seqs)
 
     all_labels, all_preds = [], []
@@ -80,8 +94,16 @@ def compute_scores(pred_seqs, args, data_type, label_time):
 
 def compute_f1_scores(pred_pt, gold_pt, args, individual_comparissons = False):
     """
-    Function to compute F1 scores with pred and gold quads
-    The input needs to be already processed
+    Function to compute F1 scores, precision, and recall with predicted elements and gold labels. 
+
+    input: 
+    - pred_pt: a list of the predicted elements 
+    - gold_pt: a list of the gold labels
+    - args: the arguments containing which technique to use, but also the thresholds and other parameters
+    - individual_comparison: print the predicted labels and gold labels next to each other to compare them individually and see the differences. The default value is set to False
+
+    output: 
+    - scores: the obtained F1 score, precision, and recall metrics for the predicted sequence 
     """
     # number of true postive, gold standard, predictions
     n_tp, n_gold, n_pred = 0, 0, 0
